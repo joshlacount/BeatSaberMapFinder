@@ -38,6 +38,7 @@ namespace BeatSaberMapFinder
             UpdateMapDump(ref mapDump);
             Console.WriteLine("map dump updated");
             SaveMapDump(mapDump);
+            EventSystem.Publish<MapDumpUpdated>();
         }
 
         public static void DownloadMap(string mapKey, string mapSongName, string mapAuthor)
@@ -467,6 +468,9 @@ namespace BeatSaberMapFinder
             return songNameMatch && artistNameMatch;
         }
     }
+
+    public class MapDumpUpdated
+    { }
 
     class SingleSongState
     {

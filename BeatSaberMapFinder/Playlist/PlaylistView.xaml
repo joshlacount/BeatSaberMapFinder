@@ -9,15 +9,16 @@
 
     <UserControl.Resources>
         <local:ListToStringConverter x:Key="ListToStringConverter"/>
+        <local:InverseBoolConverter x:Key="InverseBoolConverter"/>
     </UserControl.Resources>
 
     <DockPanel Margin="20">
         <DockPanel LastChildFill="False" DockPanel.Dock="Top">
             <TextBlock Margin="2,2" VerticalAlignment="Center" DockPanel.Dock="Left" TextWrapping="Wrap" Text="{Binding ComboDefaultText}"/>
             <ComboBox Margin="2,2" VerticalAlignment="Center" DockPanel.Dock="Left" Width="150" ItemsSource="{Binding Playlists}" SelectedItem="{Binding SelectedPlaylist}" DisplayMemberPath="PlaylistName"/>
-            <Button Width="100" Margin="5,0" DockPanel.Dock="Right" Content="Find Maps" Command="{Binding MatchSingleSongCommand}"/>
+            <Button Width="100" Margin="5,0" DockPanel.Dock="Right" IsEnabled="{Binding Path=UpdatingDump, Converter={StaticResource InverseBoolConverter}}" Content="Find Maps" Command="{Binding MatchSingleSongCommand}"/>
             <Button Width="100" Margin="5,0" DockPanel.Dock="Right" Content="Download Map" Command="{Binding DownloadSingleMapCommand}"/>
-            <Button Width="100" Margin="5,0" DockPanel.Dock="Left" Content="Playlist Match" Command="{Binding MatchPlaylistCommand}"/>
+            <Button Width="100" Margin="5,0" DockPanel.Dock="Left" IsEnabled="{Binding UpdatingDump, Converter={StaticResource InverseBoolConverter}}" Content="Playlist Match" Command="{Binding MatchPlaylistCommand}"/>
             <Button Width="130" Margin="5,0" DockPanel.Dock="Left" Content="Download All Matches" Command="{Binding DownloadPlaylistMatchesCommand}"/>
             <TextBlock Margin="5,2" VerticalAlignment="Center" DockPanel.Dock="Left" TextWrapping="Wrap"  Text="{Binding MatchStatus}"/>
         </DockPanel>

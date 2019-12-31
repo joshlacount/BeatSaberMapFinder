@@ -17,7 +17,8 @@ namespace BeatSaberMapFinder
         private PlaylistModel _selectedPlaylist;
         private BeatsaverMap _selectedMap;
         private string _comboDefaultText = "Select playlist";
-        private string _matchStatus;
+        private string _matchStatus = "Updating map dump...";
+        private bool _updatingDump = true;
 
         private ICommand _matchSingleSongCommand;
         private ICommand _matchPlaylistCommand;
@@ -36,6 +37,10 @@ namespace BeatSaberMapFinder
         {
             this.PropertyChanged += PlaylistViewModel_PropertyChanged;
             EventSystem.Subscribe<SpotifyAccessTokenMessage>(a => Task.Run(UpdateComboBox));
+            EventSystem.Subscribe<MapDumpUpdated>(a => {
+                MatchStatus = "";
+                UpdatingDump = false;
+            });
             //Playlists = SpotifyAPI.GetPlaylists(true);
 
             //if (_playlists.Count > 0)
@@ -198,6 +203,19 @@ namespace BeatSaberMapFinder
                 {
                     _matchStatus = value;
                     OnPropertyChanged("MatchStatus");
+                }
+            }
+        }
+
+        public bool UpdatingDump
+        {
+            get { return _updatingDump; }
+            set
+            {
+                if (value != _updatingDump)
+                {
+                    _updatingDump = value;
+                    OnPropertyChanged("UpdatingDump");
                 }
             }
         }
