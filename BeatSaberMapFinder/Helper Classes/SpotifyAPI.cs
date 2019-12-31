@@ -209,7 +209,7 @@ namespace BeatSaberMapFinder
                                 if (numSongs == 0)
                                 {
                                     Console.WriteLine($"{songName} - {p["name"]}");
-                                    SQLite.ExecuteNonQuery($"insert into songs (title, artists, id, playlist_id, platform) values (\"{songName}\", \"{artistsString}\", '{songID}', \"{p["id"]}\", 'spotify');");
+                                    SQLite.ExecuteNonQuery($"insert into songs (title, artists, id, playlist_id, platform) values (\"{SQLite.EscapeString(songName)}\", \"{SQLite.EscapeString(artistsString)}\", '{songID}', \"{p["id"]}\", 'spotify');");
                                 }
 
                                 List<BeatsaverMap> matches = new List<BeatsaverMap>();

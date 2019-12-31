@@ -34,12 +34,15 @@ namespace BeatSaberMapFinder
                 mapDump = LoadMapDump();
             else
                 mapDump = DownloadMapDump();
+            Console.WriteLine("updating map dump");
             UpdateMapDump(ref mapDump);
+            Console.WriteLine("map dump updated");
             SaveMapDump(mapDump);
         }
 
         public static void DownloadMap(string mapKey, string mapSongName, string mapAuthor)
         {
+            mapSongName = mapSongName.Replace("/", "");
             if (!Directory.Exists($"{BeatSaberInstallFolder}\\Beat Saber_Data\\CustomLevels\\{mapKey} ({mapSongName} - {mapAuthor})"))
             {
                 try
@@ -48,6 +51,7 @@ namespace BeatSaberMapFinder
                     {
                         client.DownloadFile($"{_beatsaverURL}/download/key/{mapKey}", $"{mapKey}.zip");
                     }
+
                     ZipFile.ExtractToDirectory($"{mapKey}.zip", $"{BeatSaberInstallFolder}\\Beat Saber_Data\\CustomLevels\\{mapKey} ({mapSongName} - {mapAuthor})");
                     File.Delete($"{mapKey}.zip");
                 }
@@ -102,43 +106,41 @@ namespace BeatSaberMapFinder
 
         public static void UpdateMapDump(ref List<BeatsaverMap> dump)
         {
-            var mostRecentDate = dump[0].Uploaded;
+            var mostRecentKey = dump[0].Key;
             int pageNum = 0;
             bool isUpdated = false;
+
+            List<BeatsaverMap> newMaps = new List<BeatsaverMap>();
+
             while (!isUpdated)
             {
-                var mapsJson = JsonConvert.SerializeObject(GetRequest($"/maps/latest/{pageNum}", rateLimit:true)["docs"]);
+                var mapsJson = JsonConvert.SerializeObject(GetRequest($"/maps/latest/{pageNum}", rateLimit: true)["docs"]);
                 List<BeatsaverMap> maps = JsonConvert.DeserializeObject<List<BeatsaverMap>>(mapsJson);
-                
+                Console.WriteLine($"Page #{pageNum}");
                 foreach (var m in maps)
                 {
-                    if (DateTime.Compare(m.Uploaded, mostRecentDate) < 0)
+                    if (m.Key == mostRecentKey)
                     {
                         isUpdated = true;
                         break;
                     }
-                    dump.Add(m);
+                    newMaps.Add(m);
                 }
                 pageNum++;
             }
+
+            var updatedDump = newMaps;
+            updatedDump.AddRange(dump);
+            dump = updatedDump;
         }
 
         public static List<BeatsaverMap> FindMapsSingleSong(SongModel song)
         {
             List<BeatsaverMap> matches = new List<BeatsaverMap>();
-            var songTitleLower = song.SongTitle.ToLower();
-            var songArtistLower = song.SongArtists[0].ToLower();
             
             foreach (var m in mapDump)
             {
-                var mapAuthorName = m.Metadata.LevelAuthorName;
-                var mapKey = m.Key;
-                var mapSongName = m.Metadata.SongName;
-                var mapSongSubName = m.Metadata.SongSubName;
-                var mapSongNameLower = mapSongName.ToLower();
-                var mapSongSubNameLower = mapSongSubName.ToLower();
-
-                if ((mapSongNameLower.Contains(songTitleLower) && mapSongSubNameLower.Contains(songArtistLower)) || (mapSongNameLower.Contains(songTitleLower) && mapSongNameLower.Contains(songArtistLower)))
+                if (MapMatchesSong(m, song))
                     matches.Add(m);
             }
 
@@ -409,7 +411,7 @@ namespace BeatSaberMapFinder
             }
             */
 
-            private static dynamic GetRequest(string endpoint, bool returnString = false, bool rateLimit = false)
+        private static dynamic GetRequest(string endpoint, bool returnString = false, bool rateLimit = false)
         {
             HttpWebRequest request = (HttpWebRequest)WebRequest.Create(_beatsaverURL + endpoint);
 
@@ -422,17 +424,20 @@ namespace BeatSaberMapFinder
                         int rateLimitRemaining = Convert.ToInt32(response.Headers["Rate-Limit-Remaining"]);
                         double unixTimeStamp = Convert.ToDouble(response.Headers["Rate-Limit-Reset"]);
                         DateTime rateLimitReset = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
-                        rateLimitReset = rateLimitReset.AddSeconds(unixTimeStamp + 5).ToLocalTime();
+                        rateLimitReset = rateLimitReset.AddSeconds(unixTimeStamp);
+                        TimeSpan waitTime = rateLimitReset.Subtract(DateTime.UtcNow);
+                        Console.WriteLine($"unix: {unixTimeStamp}");
+                        Console.WriteLine($"reset: {rateLimitReset}");
+                        Console.WriteLine($"now: {DateTime.UtcNow}");
 
                         if (rateLimitRemaining == 0)
                         {
-                            Console.WriteLine("waiting");
-                            int dtCompare = -1;
-                            while (dtCompare < 0)
+                            if (waitTime.TotalSeconds > 0)
                             {
-                                dtCompare = DateTime.Compare(DateTime.Now, rateLimitReset);
+                                Console.WriteLine($"waiting for {waitTime.TotalSeconds} seconds");
+                                Thread.Sleep(waitTime);
+                                Console.WriteLine("done waiting");
                             }
-                            Console.WriteLine("done waiting");
                         }
                     }
 
@@ -445,6 +450,21 @@ namespace BeatSaberMapFinder
                     }
                 }
             }
+        }
+
+        private static bool MapMatchesSong(BeatsaverMap map, SongModel song)
+        {
+            var mapName = map.Name.ToLower();
+            var mapSongName = map.Metadata.SongName.ToLower();
+            var mapSongSubName = map.Metadata.SongSubName.ToLower();
+
+            var songName = song.SongTitle.ToLower();
+            var artistName = song.SongArtists[0].ToLower();
+
+            var artistNameMatch = mapName.Contains(artistName) || mapSongName.Contains(artistName) || mapSongSubName.Contains(artistName);
+            var songNameMatch = mapName.Contains(songName) || mapSongName.Contains(songName);
+
+            return songNameMatch && artistNameMatch;
         }
     }
 

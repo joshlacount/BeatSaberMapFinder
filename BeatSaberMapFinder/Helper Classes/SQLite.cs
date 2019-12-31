@@ -122,5 +122,10 @@ namespace BeatSaberMapFinder
 
             return dt;
         }
+
+        public static string EscapeString(string str)
+        {
+            return str.Replace("\"", "\"\"");
+        }
     }
 }
